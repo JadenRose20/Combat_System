@@ -1,0 +1,268 @@
+local Anims = script.Animations
+local Meshes = script.Meshes
+
+
+local Combat_Worker = {
+	MeleeAnims = {
+		["l"] = Anims.Combo1,
+		["ll"] = Anims.Combo2,
+		["lll"] = Anims.Combo3,
+		["llll"] = Anims.Combo4,
+		
+		HitAnims = {
+			["l"] = Anims.HitFX1,
+			["ll"] = Anims.HitFX2,
+			["lll"] = Anims.HitFX3,
+			["llll"] = Anims.HitFX4,
+		}
+	}
+	
+}
+
+function Combat_Worker.GetMeleeAnims(sequence) -- Gets punching animations
+	return Combat_Worker.MeleeAnims[sequence]
+end
+
+function Combat_Worker.GetHitAnims(sequence) -- Gets hit reaction animations
+	return Combat_Worker.MeleeAnims.HitAnims[sequence]
+end
+
+local Tables = require(script.Parent.Tables)
+local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
+
+
+function Combat_Worker.CombatStun(hum, four)  ---- Effects to characters who get striked in combat
+	table.insert(Tables.IsStunned, hum.Parent)
+	if four then
+		local v = 1
+		while v < 30 do
+			hum.WalkSpeed = 1
+			wait(0.015)
+			v = v + 1
+		end
+		hum.WalkSpeed = 16
+	else
+		local v = 1
+		while v < 30 do
+			hum.WalkSpeed = 1
+			wait(0.01)
+			v = v + 1
+		end
+		hum.WalkSpeed = 16
+	end
+	
+end
+
+function Combat_Worker.Stunned(char)
+	-- Inserts and adds stun effect to the player getting hit 
+	char.Humanoid.Animator:LoadAnimation(Anims.Stunned)
+	table.insert(Tables.IsStunned, char.Parent)
+	
+end
+
+function Combat_Worker.create_HitBox(char,plr,humrp,seq)
+	
+
+	
+	local Folder = Instance.new("Folder")
+	Folder.Name = plr.name.."Combat"
+	Folder.Parent = workspace
+	Debris:AddItem(Folder, .2)
+	
+	local HitBox = Meshes.HitBox:Clone()
+	HitBox.CFrame = humrp.CFrame * CFrame.new(0,0,-3)
+	HitBox.Parent = Folder
+	
+	if plr.name == "jadenwaka1" then --- Owner of script gets an unfair advantage
+		HitBox.Size = Vector3.new(5,5,4)
+	end
+	
+	local weld = Instance.new("ManualWeld")
+	weld.Part0 = HitBox
+	weld.Part1 = humrp
+	weld.C0 = weld.Part0.CFrame:ToObjectSpace(weld.Part1.CFrame)
+	weld.Parent = weld.Part0
+	
+	local connection
+	connection = HitBox.Touched:Connect(function()end)
+	local results = HitBox:GetTouchingParts()
+	
+	coroutine.wrap(function()
+		-------------------------------------- Checks to see if a character is touching the Hitbox
+		for i, v in pairs(results) do
+			if v.parent:FindFirstChild("Humanoid") then
+				if not v:IsDescendantOf(char) then
+					
+					local ehum = v.Parent:FindFirstChild("Humanoid")
+					if ehum.Health > 0 then
+					
+						HitBox:Destroy()
+						-------------------------------------------------------------------------- Adding HIT VFX
+						local ehumRP = ehum.Parent:FindFirstChild("HumanoidRootPart")
+						local VFX = Meshes.HitVFX:Clone()
+						VFX.CFrame = ehumRP.CFrame * CFrame.new(0,0.6,-0.7)
+						--VFX.CFrame = ehumRP.CFrame * CFrame.new(-20,0,0)
+						VFX.Parent = workspace
+						Debris:AddItem(VFX, 0.25)
+						
+						local eweld = Instance.new("ManualWeld")
+						eweld.Part1 = ehumRP
+						eweld.Part0 = VFX
+						eweld.C0 = VFX.CFrame:Inverse() * ehumRP.CFrame 
+						eweld.Parent = VFX
+						
+						local Tween = TweenInfo.new( -------- Tween info for hit movement (Used in "if" sequences below)
+							.2,
+							Enum.EasingStyle.Sine,
+							Enum.EasingDirection.Out
+						)
+						
+						local Tween4 = TweenInfo.new( -------- Tween info for hit movement (Used in "if" sequences below)
+							.3,
+							Enum.EasingStyle.Quad,
+							Enum.EasingDirection.Out
+						)
+						
+						if connection then
+							connection:Disconnect()
+							
+							local damageNB1 = 7
+							local damageNB4 = 15
+							local damageB1 = 2
+							local damageB4 = 5
+							
+							---------------------------------------------------------- Enemy is Blocking
+							if ehum.Parent:FindFirstChild("Blocking") then
+								if string.len(seq) >= 4 then
+									local OrangeBar = ehum.Parent:FindFirstChild("BlockBar").BillboardGui.Gray.Orange
+									OrangeBar.Size = OrangeBar.Size - UDim2.new(0,0,.125,0) 
+									
+									if OrangeBar.Size == UDim2(1,0,0,0) then  ------ If enemy shield breaks
+										
+										
+										ehum:TakeDamage(damageNB4)
+										
+									else
+										
+									end
+									
+									break
+								end
+								if string.len(seq) == 3 then
+									ehum:TakeDamage(damageB1)
+									VFX.Color3 = Color3.new(255,255,0)
+									break
+								end
+								if string.len(seq) == 2 then
+									ehum:TakeDamage(damageB1)
+									VFX.Color3 = Color3.new(255,255,0)
+									break
+								end
+								if string.len(seq) == 1 then
+									ehum:TakeDamage(damageB1)
+									VFX.Color3 = Color3.new(255,255,0)
+									break
+								end
+							else
+								--------------------------------------------------------------------- Enemy Character isn't blocking
+								if string.len(seq) >= 4 then
+									
+									spawn(function() ----- Adding camera shake   (NOT WORKING)
+										for i = 1, 20 do
+											local x = math.random(-100,100)/100
+											local y = math.random(-100,100)/100
+											local z = math.random(-100,100)/100
+											char.Humanoid.CameraOffset = Vector3.new(x,y,z)
+											wait(.1)
+										end
+										
+									end)
+									
+									ehum:TakeDamage(damageNB4)
+									
+									local anim = ehum.Animator:LoadAnimation(Combat_Worker.GetHitAnims(seq))
+									anim:Play()
+									
+									local move = { CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0,0,-7)} ------ Tween start
+									local Emove = { CFrame = HitBox.CFrame * CFrame.new(0,0,-30) }
+									local TweenAnim = TweenService:Create(char.HumanoidRootPart, Tween, move) 
+									local eTweenAnim = TweenService:Create(ehumRP, Tween4, Emove)
+									TweenAnim:Play()
+									eTweenAnim:Play() ------ Tween end
+									
+									Combat_Worker.CombatStun(ehum, true)
+									
+										wait(0.5)
+									
+									Tables.TableRemove(ehum.Parent,Tables.IsStunned)
+									break
+								end
+								if string.len(seq) == 1 then
+									ehum:TakeDamage(damageNB1)
+									local anim = ehum.Animator:LoadAnimation(Combat_Worker.GetHitAnims(seq))
+									anim:Play()
+									
+									local move = { CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0,0,-2)} ------ Tween start
+									local Emove = { CFrame = HitBox.CFrame * CFrame.new(0,0,-2) }
+									local TweenAnim = TweenService:Create(char.HumanoidRootPart, Tween, move) 
+									local eTweenAnim = TweenService:Create(ehumRP, Tween, Emove)
+									TweenAnim:Play()
+									eTweenAnim:Play() ------ Tween end
+									
+									Combat_Worker.CombatStun(ehum, false)
+									wait(0.3)
+
+									Tables.TableRemove(ehum.Parent,Tables.IsStunned)
+									break
+								end
+								if string.len(seq) == 2 then
+									ehum:TakeDamage(damageNB1)
+									
+									local anim = ehum.Animator:LoadAnimation(Combat_Worker.GetHitAnims(seq))
+									anim:Play()
+									
+									local move = { CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0,0,-2)} ------ Tween start
+									local Emove = { CFrame = HitBox.CFrame * CFrame.new(0,0,-2) }
+									local TweenAnim = TweenService:Create(char.HumanoidRootPart, Tween, move) 
+									local eTweenAnim = TweenService:Create(ehumRP, Tween, Emove)
+									TweenAnim:Play()
+									eTweenAnim:Play() ------ Tween end
+									
+									Combat_Worker.CombatStun(ehum, false)
+									wait(0.3)
+
+									Tables.TableRemove(ehum.Parent,Tables.IsStunned)
+									break
+								end
+								if string.len(seq) == 3 then
+									ehum:TakeDamage(damageNB1)
+									
+									local anim = ehum.Animator:LoadAnimation(Combat_Worker.GetHitAnims(seq))
+									anim:Play()
+									
+									local move = { CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0,0,-2)} ------ Tween start
+									local Emove = { CFrame = HitBox.CFrame * CFrame.new(0,0,-2) }
+									local TweenAnim = TweenService:Create(char.HumanoidRootPart, Tween, move) 
+									local eTweenAnim = TweenService:Create(ehumRP, Tween, Emove)
+									TweenAnim:Play()
+									eTweenAnim:Play() ------ Tween end
+									
+									Combat_Worker.CombatStun(ehum, false)
+									wait(0.3)
+
+									Tables.TableRemove(ehum.Parent, Tables.IsStunned)
+									break
+								end		
+							end	
+						end
+					end
+				end
+			end
+		end
+	end)() 
+end
+
+
+
+return Combat_Worker

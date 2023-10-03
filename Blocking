@@ -1,0 +1,58 @@
+local UIS = game:GetService("UserInputService")
+local remote = game.ReplicatedStorage:WaitForChild("Block")
+local anim = script.Parent.Combat_Worker.Animations.Block
+local remoteEnd = game.ReplicatedStorage:WaitForChild("BlockEnd")
+local Tables = require(script.Parent.Tables)
+local CD = false
+local BlockBar = script.Parent.Combat_Worker.Meshes.BlockBar:Clone()
+			
+
+remote.OnServerEvent:Connect(function(plr,char)
+	if Tables.TableFind(plr,Tables.InAction) == true or Tables.TableFind(plr,Tables.IsStunned) then -- Won't run if player is stunned or in combat
+		
+	else
+		
+		if CD == false then
+			CD = true
+			
+			remote:FireClient(plr)
+			--------------------------------------------- Blocking effects (not concerning combat but rather the style)		
+			local BlockV = Instance.new("StringValue")
+			BlockV.Name = "Blocking"
+			BlockV.Parent = char
+			char.Humanoid.WalkSpeed = 5
+			
+			--------------------------------------------- The block bar (no stamina drain or abilities yet)
+			if char:FindFirstChild("BlockBar") then
+				BlockBar.BillboardGui.Enabled = true
+			else
+				
+				BlockBar.CFrame = char.HumanoidRootPart.CFrame
+				BlockBar.Parent = char
+
+				local weld = Instance.new("ManualWeld")
+				weld.Part0 = char.HumanoidRootPart
+				weld.Part1 = BlockBar
+				weld.C0 = weld.Part0.CFrame:ToObjectSpace(weld.Part1.CFrame)
+				weld.Parent = weld.Part0
+			end
+		end
+	end		
+end)
+
+remoteEnd.OnServerEvent:Connect(function(plr,char) ---- Block concludes function
+	if char:FindFirstChild("Blocking") then
+		remoteEnd:FireClient(plr)
+		
+		local BlockV = char.Blocking
+		BlockV:Destroy()
+		BlockBar.BillboardGui.Enabled = false
+		char.Humanoid.WalkSpeed = 16
+		
+		wait(.5)
+    	CD = false
+	end
+
+	
+	
+end)

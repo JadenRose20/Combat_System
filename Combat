@@ -1,0 +1,39 @@
+local remote = game:GetService("ReplicatedStorage").Combat
+local Combat_Worker = require(script.Combat_Worker)
+local Tables = require(script.Tables)
+local TakeOutOfTable_Time = 0.5
+
+remote.OnServerEvent:Connect(function(plr,seq)
+	if Tables.TableFind(plr,Tables.IsStunned) ~= true then -- Checks to see if the player is in the state of getting hit
+		
+		local char = plr.Character
+		local hum = char.Humanoid
+		local humrp = char.HumanoidRootPart
+		local Anim = hum.Animator:LoadAnimation(Combat_Worker.GetMeleeAnims(seq)) -- Get animation
+		Anim:Play()
+		
+		table.insert(Tables.InAction, plr)
+
+		Anim:GetMarkerReachedSignal("HitBox"):Connect(function()
+			Combat_Worker.create_HitBox(char,plr,humrp,seq)   --------  Finds the manually created signal in the animation and creates an instance of a HitBox
+		end)
+		
+		-- Fires client based on if the current sequence is or is not the final strike
+		if string.len(seq) < 4 then
+			remote:FireClient(plr, false)
+		else
+			remote:FireClient(plr, true)
+		end
+			wait(TakeOutOfTable_Time)
+		
+		Tables.TableRemove(plr,Tables.InAction)
+	
+	
+	else
+		if string.len(seq) < 4 then
+			remote:FireClient(plr, false)
+		else
+			remote:FireClient(plr, true)
+		end
+	end	
+end)

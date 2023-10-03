@@ -1,0 +1,27 @@
+local Tables = {
+	
+	InAction = {},
+	
+	IsStunned = {},
+	
+	
+	
+}
+
+function Tables.TableRemove(plr,Table) -- Removes player from Table
+	for i, v in pairs(Table) do
+		if v.name == plr.name then
+			table.remove(Table, i)
+		end
+	end
+end
+
+function Tables.TableFind(plr,Table) -- Validates if player is in the table
+	for i, v in pairs(Table) do
+		if v.name == plr.name then
+			return true
+		end
+	end
+end
+
+return Tables
